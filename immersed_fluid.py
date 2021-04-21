@@ -4,20 +4,20 @@ from interpfuncs import *
 import temptests
 
 def main():
-    N = 50
-    T = 310*(1.38*10**(-23))
-    L = 100
-    dt = 10 
+    N = 20
+    T = 300*1.38*10**(-23) 
+    L = 1e-5
+    dt = 1e-5
     h = L/N
-    rho = 1
+    rho = 1000
     mu = 0.001
-    Np = 0 
-    psize = 0.1
-    interac = 1e-7 
+    Np = 1
+    psize = 1e-6
+    interac = T/(0.8*1e-5)**2
     fric = (6*np.pi*mu*psize) #stokes friction, why not
     Dexp = T/fric
 
-    maxt = 10000
+    maxt = 1e-1 
     nsteps = int(np.ceil(maxt*1.0/dt))
     xhist = np.empty((Np,3,nsteps))
 
@@ -32,9 +32,10 @@ def main():
         print('Time = ',i*dt)
         
         xhist[:,:,i] = X.T;
-        bigF = interparticle_force(X,psize,interac,fric,dt)
+        #bigF = interparticle_force(X,psize,interac,fric,dt)
+        bigF = spring_force(X,interac,L)
         #XX = X + dt*bigF/fric
-        XX = X + particle_mot(u,X,T,bigF,fric,psize,dt,N,h)        
+        XX = X + particle_mot(u,X,T,bigF,fric,psize,dt,N,h)
         force = vec_spread(bigF,X,h,N) 
         uu,uk = fluid_step(u,force,ak,tau_k,sigk,ptrans,rho) 
         temphist[i] = temptests.instanttemp(rho,u,h,N) 
@@ -45,7 +46,7 @@ def main():
         X = XX.copy()
         
     tktemp = temptests.modetemp(ukmaghist,rho,L,N)  
-    return xhist,temphist,tktemp
+    return xhist/L,temphist,tktemp
 
 def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     Np = X.shape[1]
@@ -53,6 +54,9 @@ def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     therm = np.sqrt(2*fric*T/dt)*np.random.randn(3,Np)
 
     return adv + fric**(-1)*bigF + therm
+
+def spring_force(X,interac,L):
+    return -interac*(X-L/2*np.ones(X.shape))
 
 def interparticle_force(X,psize,interac,fric,dt):
     Np = X.shape[1]
@@ -75,23 +79,24 @@ def interparticle_force(X,psize,interac,fric,dt):
     
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
-    return np.maximum(fji_tot,-maxforce) 
+    return fji_tot 
 
 def lennardjones(r,sigma,epsilon):
     return 4*epsilon*(6*sigma**6/r**7-12*sigma**12/r**13)
 
 def init_particles(Np,L):
-    loc1 = np.array([0,0.3,0])
-    loc2 = np.array([0,0.8,0])
-    cloudsize = L/5
-    Xi = np.empty((3,Np))
-    i1 = int(np.floor(Np/2))
-    for i in range(i1):
-        Xi[:,i] = cloudsize*np.random.rand(3)+loc1
-    for i in range(i1,Np):
-        Xi[:,i] = cloudsize*np.random.rand(3)+loc2
+    return L*np.random.rand(3,1)
+    #loc1 = np.array([0,0.3,0])
+    #loc2 = np.array([0,0.8,0])
+    #cloudsize = L/5
+    #Xi = np.empty((3,Np))
+    #i1 = int(np.floor(Np/2))
+    #for i in range(i1):
+    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc1
+    #for i in range(i1,Np):
+    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc2
 
-    return Xi
+    #return Xi
     #return L*np.random.rand(3,Np) #uniformly distribute particles
 
 def imposeforce(N):
@@ -119,7 +124,7 @@ def fluid_step(u,force,ak,tau_k,sigk,ptrans,rho):
     
     fterm = (np.einsum('mrnkl,rnkl->mnkl',ptrans,fk))*tkarr*(1-akarr)/rho
 
-    noise = np.random.randn(3,N,N,N)+1j*np.random.randn(3,N,N,N)
+    noise = 1/(np.sqrt(3))*(np.random.randn(3,N,N,N)+1j*np.random.randn(3,N,N,N))
     noiseterm = (np.einsum('mrnkl,rnkl->mnkl',ptrans,sigarr*noise))
 
     uk = akarr*uk + fterm + noiseterm
