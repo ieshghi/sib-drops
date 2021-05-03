@@ -3,21 +3,21 @@ import matplotlib.pyplot as plt
 from interpfuncs import *
 import temptests
 
-def main():
-    N = 20
-    T = 3000*1.38*10**(-23) 
-    L = 1e-5
-    dt = 1e-6
+def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
+    #N = 20
+    #T = 3000*1.38*10**(-23) 
+    #L = 1e-5
+    #dt = 1e-6
     h = L/N
-    rho = 1000
-    mu = 0.01
-    Np = 2
-    psize = 1e-6
-    interac = 1e-15
+    #rho = 1000
+    #mu = 0.01
+    #Np = 2
+    #psize = 1e-6
+    #interac = 1e-15
     fric = (6*np.pi*mu*psize) #stokes friction, why not
     Dexp = T/fric
 
-    maxt = 5*1e-3
+    #maxt = 5*1e-3
     nsteps = int(np.ceil(maxt*1.0/dt))
     xhist = np.empty((Np,3,nsteps))
 
@@ -94,7 +94,7 @@ def init_particles(Np,L):
 
     loc1 = np.array([0,0.3,0])*L
     loc2 = np.array([0,0.8,0])*L
-    cloudsize = L/5
+    cloudsize = L/3
     Xi = np.empty((3,Np))
     i1 = int(np.floor(Np/2))
     for i in range(i1):
