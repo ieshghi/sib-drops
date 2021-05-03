@@ -5,19 +5,19 @@ import temptests
 
 def main():
     N = 20
-    T = 300*1.38*10**(-23) 
+    T = 3000*1.38*10**(-23) 
     L = 1e-5
-    dt = 1e-5
+    dt = 1e-6
     h = L/N
     rho = 1000
-    mu = 0.001
-    Np = 1
+    mu = 0.01
+    Np = 2
     psize = 1e-6
-    interac = T/(0.8*1e-5)**2
+    interac = 1e-15
     fric = (6*np.pi*mu*psize) #stokes friction, why not
     Dexp = T/fric
 
-    maxt = 1e-1 
+    maxt = 5*1e-3
     nsteps = int(np.ceil(maxt*1.0/dt))
     xhist = np.empty((Np,3,nsteps))
 
@@ -32,8 +32,8 @@ def main():
         print('Time = ',i*dt)
         
         xhist[:,:,i] = X.T;
-        #bigF = interparticle_force(X,psize,interac,fric,dt)
-        bigF = spring_force(X,interac,L)
+        bigF = interparticle_force(X,psize,interac,fric,dt)
+        #bigF = spring_force(X,interac,L)
         #XX = X + dt*bigF/fric
         XX = X + particle_mot(u,X,T,bigF,fric,psize,dt,N,h)
         force = vec_spread(bigF,X,h,N) 
@@ -53,7 +53,7 @@ def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     adv = dt*vec_interp(u,X,N,h)
     therm = np.sqrt(2*fric*T/dt)*np.random.randn(3,Np)
 
-    return adv + fric**(-1)*bigF + therm
+    return adv + dt*fric**(-1)*bigF + therm
 
 def spring_force(X,interac,L):
     return -interac*(X-L/2*np.ones(X.shape))
@@ -62,7 +62,6 @@ def interparticle_force(X,psize,interac,fric,dt):
     Np = X.shape[1]
     nji = np.empty((3,Np,Np))
     rji = np.empty((Np,Np))
-    cutoff_range = 3000*psize
     maxforce = psize*fric/dt
     for i in range(Np):
         for j in range(Np):
@@ -76,6 +75,7 @@ def interparticle_force(X,psize,interac,fric,dt):
     fji = nji.copy()
     #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
+    fji_scal[fji_scal>maxforce] = maxforce
     
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
@@ -85,19 +85,24 @@ def lennardjones(r,sigma,epsilon):
     return 4*epsilon*(6*sigma**6/r**7-12*sigma**12/r**13)
 
 def init_particles(Np,L):
-    return L*np.random.rand(3,1)
-    #loc1 = np.array([0,0.3,0])
-    #loc2 = np.array([0,0.8,0])
-    #cloudsize = L/5
-    #Xi = np.empty((3,Np))
-    #i1 = int(np.floor(Np/2))
-    #for i in range(i1):
-    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc1
-    #for i in range(i1,Np):
-    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc2
+    #return L*np.random.rand(3,Np)
+    
+    #x0 = np.zeros((3,2))
+    #x0[1,0] = 0.5*L
+    #x0[1,1] = 0.2*L
+    #return x0
 
-    #return Xi
-    #return L*np.random.rand(3,Np) #uniformly distribute particles
+    loc1 = np.array([0,0.3,0])*L
+    loc2 = np.array([0,0.8,0])*L
+    cloudsize = L/5
+    Xi = np.empty((3,Np))
+    i1 = int(np.floor(Np/2))
+    for i in range(i1):
+        Xi[:,i] = cloudsize*np.random.rand(3)+loc1
+    for i in range(i1,Np):
+        Xi[:,i] = cloudsize*np.random.rand(3)+loc2
+
+    return Xi
 
 def imposeforce(N):
     force = np.zeros((3,N,N,N))
