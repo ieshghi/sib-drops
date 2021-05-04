@@ -75,7 +75,7 @@ def interparticle_force(X,psize,interac,fric,dt):
     fji = nji.copy()
     #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
-    fji_scal[fji_scal>maxforce] = maxforce
+    fji_scal[abs(fji_scal)>maxforce] = maxforce*np.sign(fji_scal[abs(fji_scal)>maxforce])
     
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
@@ -85,22 +85,22 @@ def lennardjones(r,sigma,epsilon):
     return 4*epsilon*(6*sigma**6/r**7-12*sigma**12/r**13)
 
 def init_particles(Np,L):
-    #return L*np.random.rand(3,Np)
+    return L*np.random.rand(3,Np)
     
     #x0 = np.zeros((3,2))
     #x0[1,0] = 0.5*L
     #x0[1,1] = 0.2*L
     #return x0
 
-    loc1 = np.array([0,0.3,0])*L
-    loc2 = np.array([0,0.8,0])*L
-    cloudsize = L/3
-    Xi = np.empty((3,Np))
-    i1 = int(np.floor(Np/2))
-    for i in range(i1):
-        Xi[:,i] = cloudsize*np.random.rand(3)+loc1
-    for i in range(i1,Np):
-        Xi[:,i] = cloudsize*np.random.rand(3)+loc2
+    #loc1 = np.array([0,0.3,0])*L
+    #loc2 = np.array([0,0.8,0])*L
+    #cloudsize = L/3
+    #Xi = np.empty((3,Np))
+    #i1 = int(np.floor(Np/2))
+    #for i in range(i1):
+    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc1
+    #for i in range(i1,Np):
+    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc2
 
     return Xi
 
