@@ -53,7 +53,7 @@ def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     adv = dt*vec_interp(u,X,N,h)
     therm = np.sqrt(2*fric*T/dt)*np.random.randn(3,Np)
 
-    return adv + dt*fric**(-1)*bigF + therm
+    return adv + dt*bigF/fric + therm
 
 def spring_force(X,interac,L):
     return -interac*(X-L/2*np.ones(X.shape))
@@ -75,22 +75,26 @@ def interparticle_force(X,psize,interac,fric,dt):
     fji = nji.copy()
     #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
+    print(abs(fji_scal))
+
     fji_scal[abs(fji_scal)>maxforce] = maxforce*np.sign(fji_scal[abs(fji_scal)>maxforce])
+    print(maxforce)
     
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
+    print((fji_tot))
     return fji_tot 
 
 def lennardjones(r,sigma,epsilon):
     return 4*epsilon*(6*sigma**6/r**7-12*sigma**12/r**13)
 
 def init_particles(Np,L):
-    return L*np.random.rand(3,Np)
+    #return L*np.random.rand(3,Np)
     
-    #x0 = np.zeros((3,2))
-    #x0[1,0] = 0.5*L
-    #x0[1,1] = 0.2*L
-    #return x0
+    x0 = np.zeros((3,2))
+    x0[1,0] = 0.5*L
+    x0[1,1] = 0.51*L
+    return x0
 
     #loc1 = np.array([0,0.3,0])*L
     #loc2 = np.array([0,0.8,0])*L
