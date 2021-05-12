@@ -7,10 +7,10 @@ L = 1e-5
 dt = 1e-8
 rho = 1000
 mu = 0.01
-Np = 200
+Np = 50
 psize = 1e-7
 interac = 2e-14
-maxt = 5*1e-3
+maxt = 1*1e-3
     
 xh,th,tk = code1.main(N,T,L,dt,rho,mu,Np,psize,interac,maxt)
 
