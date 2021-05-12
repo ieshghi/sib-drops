@@ -62,7 +62,7 @@ def interparticle_force(X,psize,interac,fric,dt):
     Np = X.shape[1]
     nji = np.empty((3,Np,Np))
     rji = np.empty((Np,Np))
-    maxforce = psize*fric/dt
+    maxforce = 2*psize*fric/dt
     for i in range(Np):
         for j in range(Np):
             d = X[:,j]-X[:,i]
@@ -75,7 +75,7 @@ def interparticle_force(X,psize,interac,fric,dt):
     fji = nji.copy()
     #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
-    fji_scal[abs(fji_scal)>maxforce] = maxforce*np.sign(fji_scal[abs(fji_scal)>maxforce])
+    fji_scal[fji_scal>maxforce] = maxforce*np.sign(fji_scal[fji_scal>maxforce])
     
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
