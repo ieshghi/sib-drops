@@ -22,11 +22,12 @@ def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
     xhist = np.empty((Np,3,nsteps))
 
     u = init_fluid(N,h)
+    omega = 0*u
     k,dk,tau_k,plong,ptrans,ak,xik,sigk = init_arrs(N,h,mu,rho,dt,T)
     X = init_particles(Np,L)
 
-    temphist = np.empty(nsteps)
-    ukmaghist = np.empty((nsteps,N,N,N))
+    #temphist = np.empty(nsteps)
+    #ukmaghist = np.empty((nsteps,N,N,N))
 
     for i in range(nsteps):
         print('Time = ',i*dt)
@@ -35,25 +36,25 @@ def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
         bigF = interparticle_force(X,psize,interac,fric,dt)
         #bigF = spring_force(X,interac,L)
         #XX = X + dt*bigF/fric
-        XX = X + particle_mot(u,X,T,bigF,fric,psize,dt,N,h)
+        XX = X + particle_mot(omega,X,T,bigF,fric,psize,dt,N,h)
         force = vec_spread(bigF,X,h,N) 
-        uu,uk = fluid_step(u,force,ak,tau_k,sigk,ptrans,rho) 
-        temphist[i] = temptests.instanttemp(rho,u,h,N) 
-        ukmaghist[i,:,:,:] = np.sum(uk*np.conj(uk),axis=0)
+        uu,uk,omega = fluid_step(u,force,ak,tau_k,sigk,ptrans,rho,xik,dt) 
+    #    temphist[i] = temptests.instanttemp(rho,u,h,N) 
+    #    ukmaghist[i,:,:,:] = np.sum(uk*np.conj(uk),axis=0)
         #if i%10==0:
         #    plt.plot(uu[0,int(np.floor(N/2)),int(np.floor(N/2)),:])
         u = uu.copy()
         X = XX.copy()
         
-    tktemp = temptests.modetemp(ukmaghist,rho,L,N)  
-    return xhist/L,temphist,tktemp
+    #tktemp = temptests.modetemp(ukmaghist,rho,L,N)  
+    return xhist/L
 
 def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     Np = X.shape[1]
-    adv = dt*vec_interp(u,X,N,h)
+    adv = vec_interp(u,X,h,N)
     therm = np.sqrt(2*fric*T/dt)*np.random.randn(3,Np)
 
-    return adv + dt*bigF/fric + therm
+    return adv*dt+ (bigF + therm)*dt/fric
 
 def spring_force(X,interac,L):
     return -interac*(X-L/2*np.ones(X.shape))
@@ -87,9 +88,9 @@ def lennardjones(r,sigma,epsilon):
 def init_particles(Np,L):
     return L*np.random.rand(3,Np)
     
-    #x0 = np.zeros((3,2))
-    #x0[1,0] = 0.5*L
-    #x0[1,1] = 0.51*L
+    #x0 = np.zeros((3,1))
+    #x0[:,0] = 0.5*L
+    ##x0[1,1] = 0.51*L
     #return x0
 
     #loc1 = np.array([0,0.3,0])*L
@@ -114,7 +115,7 @@ def imposeforce(N):
 def init_fluid(N,h):
     return np.zeros((3,N,N,N))
 
-def fluid_step(u,force,ak,tau_k,sigk,ptrans,rho):
+def fluid_step(u,force,ak,tau_k,sigk,ptrans,rho,xik,dt):
     N = np.size(u[0,:,0,0])
     uk = np.fft.fft(u,axis=1,norm='forward')
     uk = np.fft.fft(uk,axis=2,norm='forward')
@@ -126,19 +127,30 @@ def fluid_step(u,force,ak,tau_k,sigk,ptrans,rho):
     akarr = np.repeat(ak,3,axis=0)
     tkarr = np.repeat(tau_k,3,axis=0)
     sigarr = np.repeat(sigk,3,axis=0)
+    xiarr = np.repeat(xik,3,axis=0)
     
-    fterm = (np.einsum('mrnkl,rnkl->mnkl',ptrans,fk))*tkarr*(1-akarr)/rho
+    ftrans = (np.einsum('mrnkl,rnkl->mnkl',ptrans,fk))
+    fterm = ftrans*tkarr*(1-akarr)/rho
 
     noise = 1/(np.sqrt(3))*(np.random.randn(3,N,N,N)+1j*np.random.randn(3,N,N,N))
-    noiseterm = (np.einsum('mrnkl,rnkl->mnkl',ptrans,sigarr*noise))
-
+    gk = (np.einsum('mrnkl,rnkl->mnkl',ptrans,noise))
+    noiseterm = sigarr*gk 
     uk = akarr*uk + fterm + noiseterm
+
+    hk = tkarr*((1-akarr)*uk+(dt-tkarr*(1-akarr))*(ftrans)/rho)
+    c1 = tkarr*np.tanh(dt/(2*tkarr))
+    c2 = np.sqrt(2*tkarr**2*(dt-2*c1)*xiarr)
+
+    omegak = hk + c1*noiseterm + c2*gk
 
     uu = np.fft.ifft(uk,axis=1,norm='forward')
     uu = np.fft.ifft(uu,axis=2,norm='forward')
     uu = np.fft.ifft(uu,axis=3,norm='forward')
+    omega = np.fft.ifft(omegak,axis=1,norm='forward')
+    omega = np.fft.ifft(omega,axis=2,norm='forward')
+    omega = np.fft.ifft(omega,axis=3,norm='forward')
 
-    return uu,uk
+    return uu,uk,omega
 
 def init_arrs(N,h,mu,rho,dt,T):
     L = N*h
