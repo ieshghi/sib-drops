@@ -5,13 +5,13 @@ N = 20
 T = 300*1.38*10**(-23) 
 #Tarr = np.array([100,200,300,400,500,600])*1.38*10**(-23)
 L = 1e-5
-dt = 1e-6
+dt = 1e-8
 rho = 1000
 mu = 0.05
-Np = 20
+Np = 150
 psize = 1e-7
-interac = 1e-10
-maxt = 1e-2
+interac = 1e-12
+maxt = 1e-3
 xh = code1.main(N,T,L,dt,rho,mu,Np,psize,interac,maxt)
     
 #dxes = []
@@ -22,7 +22,7 @@ xh = code1.main(N,T,L,dt,rho,mu,Np,psize,interac,maxt)
 #    dxes.append(dx)
 
 
-np.save('testing/xh.npy',xh)
+np.save('outfiles/xh.npy',xh)
 #np.save('testing/tk.npy',tk)
 #np.save('testing/th.npy',th)
 #np.save('testing/dx.npy',dxes)
