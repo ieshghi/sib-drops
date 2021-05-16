@@ -35,8 +35,69 @@ def partpic(xh,frame,L=1):
                         #      interval=50, blit=False)
     plt.show()
 
+def midmov(xh,u=0,ifsave=0):
+    def update_lines(num,data,lines):
+        conf = data[num,:,:] # current particle configuration
+        for line,pos in zip(lines,conf):
+            x,y = pos
+            line.set_data(x,y)
+    
+    ndim = 2
+    xh = xh[:,:2,:]
+    data = np.swapaxes(xh,0,1)
+    data = np.swapaxes(data,0,2)
+    natom = data.shape[1]
+    ndim = data.shape[2]
+    nframe = data.shape[0]
+    
+    # Attach 3D axis to the figure
+    fig = plt.figure()
 
-def makemov(xh,L=1):
+    
+    lines = [plt.plot(data[0,:,0], data[0,:,1],'bo')[0] for dat in data[0]]
+    plt.xlim([0,1])
+    plt.ylim([0,1])
+    #plt.show()
+    
+    # Creating the Animation object
+    ani = animation.FuncAnimation(fig, update_lines, nframe, fargs=(data, lines),interval=50, blit=False)
+    if ifsave:
+        Writer = animation.writers['ffmpeg']
+        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ani.save('movies/above.mp4', writer=writer)
+
+    plt.show()
+ 
+def midmov_heatmap(xh,u=0,ifsave=0):
+    ndim = 2
+    xh = xh[:,:2,:]
+    data = np.swapaxes(xh,0,1)
+    data = np.swapaxes(data,0,2)
+    natom = data.shape[1]
+    nframe = data.shape[0]
+    
+    # Attach 3D axis to the figure
+    fig = plt.figure()
+
+    d,x,y = np.histogram2d(data[0,:,0],data[0,:,1],50, range=[[0.3,1],[0,1]])
+    im = plt.imshow(d.T,origin='lower',cmap='plasma')
+    def animate(i):
+        d,x,y = np.histogram2d(data[i,:,0],data[i,:,1],50, range=[[0.3,1],[0,1]])
+        im.set_data(d)
+
+    #plt.show()
+    
+    # Creating the Animation object
+    ani = animation.FuncAnimation(fig, animate, nframe,interval=50, blit=False)
+    if ifsave:
+        Writer = animation.writers['ffmpeg']
+        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ani.save('movies/above.mp4', writer=writer)
+
+    plt.show()
+    
+
+def makemov(xh,L=1,ifsave = 0):
     def update_lines(num,data,lines):
         conf = data[num,:,:] # current particle configuration
         for line,pos in zip(lines,conf):
@@ -47,7 +108,7 @@ def makemov(xh,L=1):
     ndim = 3
     data = np.swapaxes(xh,0,1)
     data = np.swapaxes(data,0,2)
-    natom = data.shape[0]
+    natom = data.shape[1]
     ndim = data.shape[2]
     nframe = data.shape[0]
     
@@ -57,10 +118,16 @@ def makemov(xh,L=1):
     ax.axes.set_xlim3d(left=0, right=1)
     ax.axes.set_ylim3d(bottom=0, top=1)
     ax.axes.set_zlim3d(bottom=0, top=1)
+    ax.view_init(elev=30., azim=0)
     
-    lines = [ax.plot(data[0,:,0], data[0,:,1], data[0,:,2],'o')[0] for dat in data[0]]
+    lines = [ax.plot(data[0,:,1], data[0,:,0], data[0,:,2],'o')[0] for dat in data[0]]
     #plt.show()
     
     # Creating the Animation object
     ani = animation.FuncAnimation(fig, update_lines, nframe, fargs=(data, lines),interval=50, blit=False)
+    if ifsave:
+        Writer = animation.writers['ffmpeg']
+        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ani.save('movies/3d.mp4', writer=writer)
     plt.show()
+    
