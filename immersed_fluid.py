@@ -19,7 +19,9 @@ def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
 
     #maxt = 5*1e-3
     nsteps = int(np.ceil(maxt*1.0/dt))
-    xhist = np.empty((Np,3,nsteps))
+    usamp = 1000
+    xhist = np.empty((Np,3,int(nsteps/usamp)))
+    uhist = np.empty((3,N,N,N,int(nsteps/usamp)))
 
     u = init_fluid(N,h)
     omega = 0*u
@@ -30,9 +32,10 @@ def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
     #ukmaghist = np.empty((nsteps,N,N,N))
 
     for i in range(nsteps):
-        print('Time = ',i*dt)
+#        print('Time = ',i*dt)
         
-        xhist[:,:,i] = X.T;
+        xhist[:,:,int(i/usamp)] = X.T
+        uhist[:,:,:,:,int(i/usamp)] = u
         bigF = interparticle_force(X,psize,interac,fric,dt)
         #bigF = spring_force(X,interac,L)
         #XX = X + dt*bigF/fric
@@ -76,7 +79,7 @@ def interparticle_force(X,psize,interac,fric,dt):
     fji = nji.copy()
     #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
-    fji_scal[fji_scal>maxforce] = maxforce*np.sign(fji_scal[fji_scal>maxforce])
+    fji_scal[abs(fji_scal)>maxforce] = maxforce*np.sign(fji_scal[abs(fji_scal)>maxforce])
 
     fji *= np.nan_to_num(fji_scal)
     fji_tot = np.sum(fji,axis=2)
@@ -86,22 +89,22 @@ def lennardjones(r,sigma,epsilon):
     return 4*epsilon*(6*sigma**6/r**7-12*sigma**12/r**13)
 
 def init_particles(Np,L):
-    return L*np.random.rand(3,Np)
+    #return L*np.random.rand(3,Np)
     
     #x0 = np.zeros((3,1))
     #x0[:,0] = 0.5*L
     ##x0[1,1] = 0.51*L
     #return x0
 
-    #loc1 = np.array([0,0.3,0])*L
-    #loc2 = np.array([0,0.8,0])*L
-    #cloudsize = L/3
-    #Xi = np.empty((3,Np))
-    #i1 = int(np.floor(Np/2))
-    #for i in range(i1):
-    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc1
-    #for i in range(i1,Np):
-    #    Xi[:,i] = cloudsize*np.random.rand(3)+loc2
+    loc1 = np.array([0.5,0.3,0.5])*L
+    loc2 = np.array([0.5,0.6,0.5])*L
+    cloudsize = L/5
+    Xi = np.empty((3,Np))
+    i1 = int(np.floor(Np/2))
+    for i in range(i1):
+        Xi[:,i] = cloudsize*np.random.rand(3)+loc1
+    for i in range(i1,Np):
+        Xi[:,i] = cloudsize*np.random.rand(3)+loc2
 
     return Xi
 
