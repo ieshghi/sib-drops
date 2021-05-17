@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.cm as cm
 
 
 def msd(xh):
@@ -50,10 +51,7 @@ def midmov(xh,u=0,ifsave=0):
     ndim = data.shape[2]
     nframe = data.shape[0]
     
-    # Attach 3D axis to the figure
     fig = plt.figure()
-
-    
     lines = [plt.plot(data[0,:,0], data[0,:,1],'bo')[0] for dat in data[0]]
     plt.xlim([0,1])
     plt.ylim([0,1])
@@ -76,7 +74,6 @@ def midmov_heatmap(xh,u=0,ifsave=0):
     natom = data.shape[1]
     nframe = data.shape[0]
     
-    # Attach 3D axis to the figure
     fig = plt.figure()
 
     d,x,y = np.histogram2d(data[0,:,0],data[0,:,1],50, range=[[0.3,1],[0,1]])
@@ -93,6 +90,53 @@ def midmov_heatmap(xh,u=0,ifsave=0):
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
         ani.save('movies/above.mp4', writer=writer)
+
+    plt.show()
+    
+def midmov_flows(uh,xh=0,ifsave=0):
+    cmap = cm.copper
+    N = uh.shape[1]
+    ndim = 2
+    uh = uh[:2,:,:,int(N/2),:]
+    nframe = uh.shape[-1]
+    speed = np.sqrt(uh[0,:,:,:]**2+uh[1,:,:,:]**2)
+    lines = []
+    data = []
+   
+    xarr = np.linspace(0,1,N)
+    [X,Y] = np.meshgrid(xarr,xarr)
+
+    fig = plt.figure()
+    
+    im = plt.quiver(X,Y,uh[0,:,:,0],uh[1,:,:,0])#,color=cmap(speed[:,:,0]))
+    if xh.size!=1:
+        xh = xh[:,:2,:]
+        data = np.swapaxes(xh,0,1)
+        data = np.swapaxes(data,0,2)
+        natom = data.shape[1]
+        ndim = data.shape[2]
+        nframe = data.shape[0]
+        
+        lines = [plt.plot(data[0,:,0], data[0,:,1],'bo')[0] for dat in data[0]]
+    
+    def animate(i,data,lines):
+        u = uh[0,:,:,i]
+        v = uh[1,:,:,i]
+        im.set_UVC(u,v)
+        if xh.size!=1:
+            conf = data[i,:,:] # current particle configuration
+            for line,pos in zip(lines,conf):
+                x,y = pos
+                line.set_data(x,y)
+
+    #plt.show()
+    
+    # Creating the Animation object
+    ani = animation.FuncAnimation(fig, animate, nframe,fargs = (data,lines),interval=50, blit=False)
+    if ifsave:
+        Writer = animation.writers['ffmpeg']
+        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ani.save('movies/above_flows.mp4', writer=writer)
 
     plt.show()
     
