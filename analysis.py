@@ -89,7 +89,7 @@ def midmov_heatmap(xh,u=0,ifsave=0):
     if ifsave:
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-        ani.save('movies/above.mp4', writer=writer)
+        ani.save('movies/above_heatmap.mp4', writer=writer)
 
     plt.show()
     
