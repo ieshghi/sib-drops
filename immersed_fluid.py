@@ -1,25 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from interpfuncs import *
-import temptests
+from simpars import *
+from multiprocessing import Pool
 
-def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
-    #N = 20
-    #T = 3000*1.38*10**(-23) 
-    #L = 1e-5
-    #dt = 1e-6
+def main():
     h = L/N
-    #rho = 1000
-    #mu = 0.01
-    #Np = 2
-    #psize = 1e-6
-    #interac = 1e-15
     fric = (6*np.pi*mu*psize) #stokes friction, why not
     Dexp = T/fric
 
-    #maxt = 5*1e-3
     nsteps = int(np.ceil(maxt*1.0/dt))
-    usamp = 1000
     xhist = np.empty((Np,3,int(nsteps/usamp)))
     uhist = np.empty((3,N,N,N,int(nsteps/usamp)))
 
@@ -50,7 +40,7 @@ def main(N,T,L,dt,rho,mu,Np,psize,interac,maxt):
         X = XX.copy()
         
     #tktemp = temptests.modetemp(ukmaghist,rho,L,N)  
-    return xhist/L
+    #return xhist/L
 
 def particle_mot(u,X,T,bigF,fric,psize,dt,N,h):
     Np = X.shape[1]
@@ -64,20 +54,24 @@ def spring_force(X,interac,L):
 
 def interparticle_force(X,psize,interac,fric,dt):
     Np = X.shape[1]
-    nji = np.empty((3,Np,Np))
-    rji = np.empty((Np,Np))
     maxforce = 2*psize*fric/dt
-    for i in range(Np):
-        for j in range(Np):
-            d = X[:,j]-X[:,i]
-            rji[i,j] = np.sqrt(np.sum(d**2))
-            if abs(rji[i,j])>0:
-                nji[:,i,j] = d/rji[i,j]
-            else:
-                nji[:,i,j] = 0
+
+    Xr = np.repeat(X[:,:,np.newaxis],Np,axis=2)
+    dists = Xr - Xr.transpose((0,2,1))
+
+    rji = np.sqrt(np.sum(dists**2,axis=0))
+    nji = np.nan_to_num(dists/rji)
+
+    #for i in range(Np):
+    #    for j in range(Np):
+    #        d = X[:,j]-X[:,i]
+    #        rji[i,j] = np.sqrt(np.sum(d**2))
+    #        if abs(rji[i,j])>0:
+    #            nji[:,i,j] = d/rji[i,j]
+    #        else:
+    #            nji[:,i,j] = 0
 
     fji = nji.copy()
-    #fji_scal = np.zeros(rji.shape)
     fji_scal = lennardjones(rji,psize,interac)
     fji_scal[abs(fji_scal)>maxforce] = maxforce*np.sign(fji_scal[abs(fji_scal)>maxforce])
 
